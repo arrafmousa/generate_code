@@ -252,9 +252,6 @@ for file in ["train", "test", "val"]:
 
             append_to_csv(file + "data_handwritten.csv", entry)
 
-        # generated_df = pd.DataFrame(df)
-        # generated_df.to_csv(r"data/generated" + file + "_df.csv")
-        # return generated_df
-
 
     generate_question(data_set, 37)
+
