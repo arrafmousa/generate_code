@@ -39,7 +39,7 @@ def generate_random_protein(length=22):
 dataset = []
 
 # Number of entries to generate
-diffrent_proteins = 100  # adjust as required
+diffrent_proteins = 250  # adjust as required
 
 for _ in tqdm(range(diffrent_proteins)):
     dna_sequence = generate_random_dna()
@@ -215,3 +215,5 @@ print(dataset)
 dataset_json = json.dumps(dataset, indent=4)
 with open("package_questions/bio.json", "w") as outfile:
     outfile.write(dataset_json)
+
+print(len(dataset))

@@ -5,7 +5,7 @@ import re
 from aaa import parse_API
 
 # Define the file names
-file_names = ["astropy.json", "bio.json", "pcp.json", "simapi.json"]
+file_names = ["astropy.json", "bio.json", "pcp.json", r"gpt4-parsed-simapi.json"]
 
 # Placeholder for combined data
 combined_data = []
@@ -14,6 +14,7 @@ combined_data = []
 for file_name in file_names:
     with open(file_name, "r") as f:
         data = json.load(f)
+        print(f"{file_name} has {len(data)} entries")
         for entry in data:
             entry["source_file"] = file_name
         combined_data.extend(data)
@@ -69,3 +70,5 @@ for entry in combined_data:
 # Save to a new JSON file (optional)
 with open("combined_shuffled.json", "w") as f:
     json.dump(combined_data, f, indent=4)
+
+print("")

@@ -1,9 +1,10 @@
+import json
 import random
 import re
 
-import chempy
-from chemlib import Compound
 import pubchempy as pcp
+
+from csv_to_json import formulate_code
 
 # -------- \begin constants ----------------------
 atoms_list = ["	Hydrogen	",
@@ -133,11 +134,11 @@ not_a_compound_list = ["the", "was", "and", "get", "of", "in", "as", "an"]
 
 # -------- \begin question types ----------------------
 def if_the_temprature_passes(row):
-    if re.search("If the temperature passes", row["context"]) is None:
+    if re.search("If the temperature passes", row["contexts"]) is None:
         return None, None, None, None
     else:
         additional_info = re.search(
-            "If the temperature passes \d+ degrees when heating .* for more than \d+ seconds .*", row["context"])
+            "If the temperature passes \d+ degrees when heating .* for more than \d+ seconds .*", row["contexts"])
         temp_threshold_str = re.findall("\d+ degrees", additional_info.group())
         heat_duration_str = re.findall("\d+ seconds", additional_info.group())
         loss_str = re.findall("loss of (\D*\d+\.?\d* [grams|milligrams|\%]+)", additional_info.group())
@@ -147,11 +148,11 @@ def if_the_temprature_passes(row):
 
 
 def We_discovered_that_if_the_amount_of(row):
-    if re.search("We discovered that if the amount of", row["context"]) is None:
+    if re.search("We discovered that if the amount of", row["contexts"]) is None:
         return None, None
     else:
         additional_info = re.search(
-            "We discovered that if the amount of .*", row["context"])
+            "We discovered that if the amount of .*", row["contexts"])
         quantity_threshold = re.findall("above (\D*\d+\.?\d* [grams|milligrams|\%]+)", additional_info.group())
         threshold_comp_name = re.findall("the amount of (.*) in", additional_info.group())
         temp_threshold_str = re.findall("the temperature is less than (\D*\d+\.?\d* degrees)", additional_info.group())
@@ -160,11 +161,11 @@ def We_discovered_that_if_the_amount_of(row):
 
 
 def overheat_the(row):
-    if re.search("Overheat the .*", row["context"]) is None:
+    if re.search("Overheat the .*", row["contexts"]) is None:
         return None, None, None
     else:
         additional_info = re.search(
-            "Overheat the .*", row["context"])
+            "Overheat the .*", row["contexts"])
         temp_threshold_str = re.findall("the temperature is above (\D*\d+\.?\d* degrees)", additional_info.group())
         decrease_ratio_str = re.findall("for each (\d+\.\d+ [second|hour]+)", additional_info.group())
         loss_str = re.findall("a loss of (\D*\d+\.?\d* [grams|milligrams|ml|ML\%]+)", additional_info.group())
@@ -174,11 +175,11 @@ def overheat_the(row):
 
 
 def if_we_heat(row):
-    if re.search("If we heat .*", row["context"]) is None:
+    if re.search("If we heat .*", row["contexts"]) is None:
         return None, None
     else:
         additional_info = re.search(
-            "If we heat .*", row["context"])
+            "If we heat .*", row["contexts"])
         temp_threshold_str = re.findall("to temperature higher than (\D*\d+\.?\d* degrees)", additional_info.group())
         loss_str = re.findall("at a rate of (\D*\d+\.?\d* [grams|milligrams|milliliters|\%]+) per minute.",
                               additional_info.group())
@@ -187,11 +188,11 @@ def if_we_heat(row):
 
 
 def stirring_the_mixture_longer(row):
-    if re.search("stirring the mixture longer.*", row["context"]) is None:
+    if re.search("stirring the mixture longer.*", row["contexts"]) is None:
         return None, None
     else:
         additional_info = re.search(
-            "stirring the mixture longer.*", row["context"])
+            "stirring the mixture longer.*", row["contexts"])
         loss_str = re.findall("will cause a loss of (\D*\d+\.?\d* [grams|milligrams|milliliters|\%]+)",
                               additional_info.group())
         decrease_ratio_str = re.findall("for each (minute|hour) above the original time",
@@ -201,11 +202,11 @@ def stirring_the_mixture_longer(row):
 
 
 def if_the_temperature_exceed(row):
-    if re.search(" If the temperature exceed .*", row["context"]) is None:
+    if re.search(" If the temperature exceed .*", row["contexts"]) is None:
         return None, None
     else:
         additional_info = re.search(
-            "If the temperature exceed .*", row["context"])
+            "If the temperature exceed .*", row["contexts"])
         temp_threshold_str = re.findall("If the temperature exceed (\D*\d+\.?\d* degrees)",
                                         additional_info.group())
         decrease_ratio_str = re.findall("it will result in (\d+\% decrease) in the final products",
@@ -215,11 +216,11 @@ def if_the_temperature_exceed(row):
 
 
 def if_we_cool_the_mixture(row):
-    if re.search("If we cool the mixture.*", row["context"]) is None:
+    if re.search("If we cool the mixture.*", row["contexts"]) is None:
         return None, None
     else:
         additional_info = re.search(
-            "If we cool the mixture.*", row["context"])
+            "If we cool the mixture.*", row["contexts"])
         temp_threshold_str = re.findall("below (\D*\d+\.?\d* degrees)",
                                         additional_info.group())
         decrease_ratio_str = re.findall("the product of the process decreases by (\d+\%)",
@@ -283,7 +284,7 @@ def get_vars_from_question(q_vars):
 
 
 def get_reactors_and_output(row):
-    context = row["context"]
+    context = row["contexts"]
     check2switch = "\(\d+\.?\d* mmol, \d+\.?\d* mg\)|\(\d+\.?\d* mmol, \d+\.?\d* g\)\(\d+\.?\d* mmol, \d+\.?\d* mL\)\(\d+\.?\d* mmol, \d+\.?\d* gr\)\(\d+\.?\d* mmol, \d+\.?\d* ml\)"
     while re.search(check2switch, context) is not None:
         cc = re.search(check2switch, context)
@@ -476,28 +477,30 @@ def generate_question_type1(row):  # debugged
              f"portions_needed = ( desired_product ) /100 [EOL]" \
              f"needed_reactors = [[reactor [ 0 ] , to_gr( reactor [ 1 ] ) * portions_needed] for reactor in components] [EOL]" \
              f"return needed_reactors [EOL]"
+    code_1 = formulate_code(code_1)
     return question_1, code_1
 
 
-def generate_question_type2(row): # debugged
+def generate_question_type2(row):  # debugged
     vars_and_vals = get_reactors_and_output(row)
     q_vars, q_list = generate_reactors(vars_and_vals[0][:-1])
-    q_list = [[q[1],q[0]] for q in q_list]
+    q_list = [[q[1], q[0]] for q in q_list]
     if len(vars_and_vals[0][:-1]) < 1:
         return "", ""
     question2 = f"we have {q_vars}, how can we optimize the process?"  # TODO V2 : add an environmental conditions
-    code2 = f"components = {vars_and_vals[0][:-1]} [EOL]" \
-            f"have_components = {q_list} [EOL]" \
-            f"min_portion = float( 'inf' ) [EOL]" \
-            f"for component, needed in zip ( components , have_components ) : [EOL]" \
-            f"[TAB]portions = to_gr( component [ 1 ] ) / to_gr( needed [ 1 ] ) [EOL]" \
-            "[TAB]if portions < min_portion : [EOL]" \
-            "[TAB][TAB]min_portion = portions [EOL]" \
-            "optimized = [] [EOL]" \
-            "for need, have in zip ( components , have_components ) : [EOL]" \
-            "[TAB]optimized.append( [ have[0] , to_gr( have [1] ) - to_gr ( need [1] ) * min_portion ] ) [EOL]" \
-            "return optimized [EOL]"
-    return question2, code2
+    code_2 = f"components = {vars_and_vals[0][:-1]} [EOL]" \
+             f"have_components = {q_list} [EOL]" \
+             f"min_portion = float( 'inf' ) [EOL]" \
+             f"for component, needed in zip ( components , have_components ) : [EOL]" \
+             f"[TAB]portions = to_gr( component [ 1 ] ) / to_gr( needed [ 1 ] ) [EOL]" \
+             "[TAB]if portions < min_portion : [EOL]" \
+             "[TAB][TAB]min_portion = portions [EOL]" \
+             "optimized = [] [EOL]" \
+             "for need, have in zip ( components , have_components ) : [EOL]" \
+             "[TAB]optimized.append( [ have[0] , to_gr( have [1] ) - to_gr ( need [1] ) * min_portion ] ) [EOL]" \
+             "return optimized [EOL]"
+    code_2 = formulate_code(code_2)
+    return question2, code_2
 
 
 def generate_question_type3(row):  # debugged
@@ -513,10 +516,11 @@ def generate_question_type3(row):  # debugged
              f"[TAB]if tmp_min_portion < minimal_product_portion : [EOL]" \
              f"[TAB][TAB]minimal_product_portion = tmp_min_portion [EOL]" \
              f"return minimal_product_portion * product_described [EOL]"
+    code_3 = formulate_code(code_3)
     return question_3, code_3
 
 
-def generate_question_type4(row): # CONTINUE HEREEEE
+def generate_question_type4(row):  # CONTINUE HEREEEE
     vars_and_vals = get_reactors_and_output(row)
     desired_output = randomize_product_amount(vars_and_vals)
     generated_temp, temp_threshold_str, loss_str, generated_duration, heat_duration_str, name, question_4 = generate_duration(
@@ -536,6 +540,17 @@ def generate_question_type4(row): # CONTINUE HEREEEE
              f"[TAB][TAB]final_product_amount = compensate_for_loss( loss= loss[0], current_value= final_product_amount) [EOL]" \
              f"portions = final_product_amount / described_product_amount [EOL]" \
              f"return [[component[0], to_gr(component[1]) * portions] for component in components] [EOL]"
+    code_4 = formulate_code(code_4)
+    answe_4 = execute
     return question_4, code_4
 
-# print(pcp.get_compounds('1-chloro-2-[6-(4-fluorophenyl)indol-3-yl]ethanone', 'name')[0])
+
+data = json.load(open("gpt4-parsed-uspto.json", "r", encoding="utf-8"))
+
+for idx, entry in enumerate(data):
+    q1, c1 = generate_question_type1(row=entry)
+    q2, c2 = generate_question_type2(row=entry)
+    q3, c3 = generate_question_type3(row=entry)
+    q4, c4 = generate_question_type4(row=entry)
+
+    print(c4)
