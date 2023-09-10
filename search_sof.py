@@ -1,52 +1,71 @@
+import json
+
 import requests
 
-def search_stackoverflow_for_pubchempy():
-    page = 1
-    has_more = True
-    base_url = "https://api.stackexchange.com/2.3/search?"
-    query_params = {
+def search_stackoverflow_questions(keyword, page_size=10):
+    base_url = "https://api.stackexchange.com/2.3/search"
+    params = {
         "order": "desc",
-        "sort": "votes",
-        "pagesize": 100,
-        "intitle": "numpy",
-        "tagged": "python",
-        "site": "stackoverflow"
+        "sort": "activity",
+        "site": "stackoverflow",
+        "pagesize": page_size,
+        "intitle": keyword
     }
-    relevant_questions = []
 
-    while has_more:
-        if len(relevant_questions) > 10:
-            break
-        query_params["page"] = page
-        response = requests.get(base_url, params=query_params)
-        data = response.json()
+    response = requests.get(base_url, params=params)
 
-        # Check if the response contains the expected data
-        if 'items' not in data:
-            if 'error_message' in data:
-                print(f"Error: {data['error_message']}")
-            else:
-                print("Unexpected response format. Exiting.")
-            break
-
-        for question in data["items"]:
-            answers_data = requests.get(f"https://api.stackexchange.com/2.3/questions/{question['question_id']}/answers",
-                                        params={"order": "desc", "sort": "votes", "site": "stackoverflow", "filter": "withbody"}).json()
-            if 'items' in answers_data and answers_data['items']:
-                top_answer = answers_data['items'][0]
-                if "pubchempy" in top_answer["body"].lower():
-                    relevant_questions.append(question)
-
-        has_more = data.get("has_more", False)
-        page += 1
-
-    # Print the relevant question titles and links
-    for question in relevant_questions:
-        print(f"Question: {question['title']}")
-        print(f"Link: {question['link']}")
-        print('-' * 80)
-
-if __name__ == "__main__":
+    if response.status_code == 200:
+        return response.json().get('items', [])
+    else:
+        return None
 
 
-    search_stackoverflow_for_pubchempy()
+import json
+import os
+
+def read_or_create_json(file_name, default_data=None):
+    if default_data is None:
+        default_data = {}
+
+    # Check if file exists
+    if os.path.exists(file_name):
+        with open(file_name, 'r') as json_file:
+            try:
+                data = json.load(json_file)
+                return data
+            except json.JSONDecodeError:
+                # If there's a decoding error, return the default data
+                return default_data
+    else:
+        # If file doesn't exist, create it with default data
+        with open(file_name, 'w') as json_file:
+            json.dump(default_data, json_file, indent=4)
+        return default_data
+
+file_name = 'package_queries_sof.json'
+data = read_or_create_json(file_name)
+
+# Usage
+keyword = "pubchempy"
+results = search_stackoverflow_questions(keyword)
+
+new_data = []
+
+if results:
+    for item in results:
+        if 'error' in item['title'].lower():
+            continue
+        new_data.append(item['title'])
+        print(f"Question ID: {item['question_id']}")
+        print(f"Title: {item['title']}")
+        print(f"Link: https://stackoverflow.com/q/{item['question_id']}")
+        print('-----')
+else:
+    print("No results found or an error occurred.")
+
+data[keyword] = new_data
+with open(file_name, 'w') as json_file:
+    json.dump(data, json_file, indent=4)
+
+
+
