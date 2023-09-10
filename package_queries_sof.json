@@ -1,0 +1,26 @@
+{
+    "pubchempy": [
+        "How to get the name of an element in PubChemPy?",
+        "How to use searchtype option in PubChemPy"
+    ],
+    "Bio": [
+        "I get that there is no skbio module even though scikit-bio is successfully installed",
+        "Identify Noise in Bio Data Based on Frequency",
+        "How to implement Proxy connection using Openssl BIO related function?",
+        "Extracting an instagram user&#39;s following count and bio",
+        "Instagram follower cound and bio",
+        "Bio Perl: code to split paired end data?",
+        "Flutter-&gt;Getting Bio-metric FingerPrint Data/Image from device",
+        "Read large amount of sectors into buffer to submit bio in kernel module for kernel 6.0+"
+    ],
+    "astropy": [
+        "How do I convert MJD(julian date) to UTC using astropy?",
+        "Opening Astropy FITS file from SFTP server",
+        "numpy stack not working for astropy quantities in numpy 1.23",
+        "Can&#39;t run code with astropy using -OO flag",
+        "How to keep certain rows from ASCII Table using Astropy",
+        "How do I align SDSS sky images in Python using Astropy?",
+        "Is this a fits header problem or something to do with astropy?",
+        "Question about lowering the resolution of a 1Dspectrum (using specutils/astropy)"
+    ]
+}
